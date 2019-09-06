@@ -33,6 +33,22 @@ def age():
 def dlhaha():
     from_ = request.args.get('from','')
     to_ = request.args.get('to','')
+    if from_:
+        try:
+            from_ = datetime.strptime(from_,'%Y-%m-%d')
+            from_ = from_.strftime('%d/%m/%Y')
+        except ValueError:
+            from_ = ''
+            
+    if to_:
+        try:
+            to_ = datetime.strptime(to_,'%Y-%m-%d')
+            to_ = to_.strftime('%d/%m/%Y')
+        except ValueError:
+            to_ = ''
+            
+            
+        
     #########################
     # Code for creating Flask
     # response
