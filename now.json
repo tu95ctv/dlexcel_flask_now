@@ -1,0 +1,13 @@
+{
+    "version": 2,
+    "name": "djpf",
+    "builds": [{
+        "src": "index.py",
+        "use": "@now/python",
+        "config": { "maxLambdaSize": "15mb" }
+    }],
+    "routes": [{
+        "src": "/(.*)",
+        "dest": "index.py"
+    }]
+}
