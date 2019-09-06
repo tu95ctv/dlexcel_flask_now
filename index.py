@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, Response
 app = Flask(__name__)
 import xlwt
+
 # try:
 #     from StringIO import StringIO ## for Python 2
 # except ImportError:
@@ -11,7 +13,7 @@ import mimetypes
 from flask import Response
 from werkzeug.datastructures import Headers
 from datetime import datetime
-
+from flask import request
 
 
 @app.route('/')
@@ -21,13 +23,16 @@ def index():
 
 @app.route('/age')
 def age():
-    return "Hello, World tu day"
+    from_ = request.args.get('from','not_from')
+    return "Hello, World tu day: from %s"%from_
 
 
 
-# @app.route('/dlexcel')
+@app.route('/dlexcel')
 @app.route('/dlxl')
 def dlhaha():
+    from_ = request.args.get('from','')
+    to_ = request.args.get('to','')
     #########################
     # Code for creating Flask
     # response
@@ -50,7 +55,7 @@ def dlhaha():
     wb = xlwt.Workbook()
     ws = wb.add_sheet('A Test Sheet')
     
-    ws.write(0, 0, 1234.56, style0)
+    ws.write(0, 0, u'Từ ngày: %s đến %s'%(from_,to_), style0)
     ws.write(1, 0, datetime.now(), style1)
     ws.write(2, 0, 1)
     ws.write(2, 1, 1)
