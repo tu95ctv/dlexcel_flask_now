@@ -12,7 +12,7 @@ Default_break_sheet = True
 
 
 def nn_chi_tiet_ca_nhan_gen_table_setting (font, font_size,request_args):
-    ne_nep_query = '''query($from1:timestamptz!,$to1:timestamptz!,$from:date!,$to:date!){
+    ne_nep_query = '''query($from:date!,$to:date!){
   result1:thong_ke_truong_v_thongke_bao_cao_vi_pham_ne_nep_chi_tiet_aggregate(
     order_by: {
       class_name: asc_nulls_last
@@ -20,8 +20,8 @@ def nn_chi_tiet_ca_nhan_gen_table_setting (font, font_size,request_args):
     where: {
       _and: {
         attend_date:{
-          _gte:$from1,
-          _lte:$to1
+          _gte:$from,
+          _lte:$to
         }        
       }      
     } 
@@ -59,15 +59,15 @@ def nn_chi_tiet_ca_nhan_gen_table_setting (font, font_size,request_args):
   }
 }''' 
     
-    def get_variable_values_nn_chi_tiet(request_args):
-        variable_values = {}
-        if 'from' in request_args:
-            variable_values['from'] = request_args['from']
-            variable_values['from1'] = request_args['from']
-        if 'to' in request_args:
-            variable_values['to'] = request_args['to']
-            variable_values['to1'] = request_args['to']
-        return variable_values
+#     def get_variable_values_nn_chi_tiet(request_args):
+#         variable_values = {}
+#         if 'from' in request_args:
+#             variable_values['from'] = request_args['from']
+#             variable_values['from1'] = request_args['from']
+#         if 'to' in request_args:
+#             variable_values['to'] = request_args['to']
+#             variable_values['to1'] = request_args['to']
+#         return variable_values
 
     def ne_nep_out_datas_func (rs):
         datas =rs['data']['result1']['nodes']
@@ -87,13 +87,13 @@ def nn_chi_tiet_ca_nhan_gen_table_setting (font, font_size,request_args):
             ]
         
     ne_nep_table_setting = {
-            'get_variable_values':get_variable_values_nn_chi_tiet,
+#             'get_variable_values':get_variable_values_nn_chi_tiet,
             'query':ne_nep_query,
             'out_datas_func':ne_nep_out_datas_func,
             'gen_row_data':None,
             'default_width':11,
             'default_merge_title_font':xlwt.easyxf(generate_easyxf(align_wrap=True, bold=True,vert = 'center',horiz='center',borders='left thin, right thin, top thin, bottom thin')),
-            'default_title_font':xlwt.easyxf(generate_easyxf(bold = True, borders='left thin, right thin, top thin, bottom thin',vert = 'center',horiz = 'center')),
+            'default_title_font':xlwt.easyxf(generate_easyxf(bold = True, borders='left thin, right thin, top thin, bottom thin',vert = 'center',horiz = 'center', pattern = 'pattern solid, fore_colour gray25')),
             'default_cell_font':xlwt.easyxf(generate_easyxf(borders='left thin, right thin, top thin, bottom thin',vert = 'center')),
             'is_merge_title':False,
             'FIELDNAME_FIELDATTR':ne_nep_FIELDNAME_FIELDATTR,
@@ -178,7 +178,7 @@ def nn_chi_tiet_tap_the_gen_table_setting (font, font_size, request_args):
             'gen_row_data':None,
             'default_width':11,
             'default_merge_title_font':xlwt.easyxf(generate_easyxf(align_wrap=True, bold=True,vert = 'center',horiz='center',borders='left thin, right thin, top thin, bottom thin')),
-            'default_title_font':xlwt.easyxf(generate_easyxf(bold = True, borders='left thin, right thin, top thin, bottom thin',vert = 'center',horiz = 'center')),
+            'default_title_font':xlwt.easyxf(generate_easyxf(bold = True, borders='left thin, right thin, top thin, bottom thin',vert = 'center',horiz = 'center', pattern = 'pattern solid, fore_colour gray25')),
             'default_cell_font':xlwt.easyxf(generate_easyxf(borders='left thin, right thin, top thin, bottom thin', vert = 'center')),
             'is_merge_title':False,
             'FIELDNAME_FIELDATTR':ne_nep_tap_the_FIELDNAME_FIELDATTR,
