@@ -5,19 +5,6 @@ from time import sleep
 import xlwt
 from datetime import datetime
 import re
-font_map = {1:'Calibri', 2:'Times New Roman'}
-# def font_decorator_parent(font, height):
-#     def font_decorator(func):
-#         def awrapper(*args, **kargs):
-#             if 'font' not in kargs and font:
-#                 kargs['font'] = font
-#             if 'height' not in kargs and height:
-#                 kargs['height'] = height
-#             rs = func(*args, **kargs)
-#             return rs
-#         return awrapper
-#     return font_decorator
-
 def font_decorator_parent_new(**kkgargs):
     def font_decorator(func):
         def awrapper(*args, **kargs):
@@ -28,9 +15,6 @@ def font_decorator_parent_new(**kkgargs):
             return rs
         return awrapper
     return font_decorator
-
-
-
 def generate_easyxf (font='Times New Roman', 
                      bold = False,
                      underline=False,
@@ -78,8 +62,6 @@ def generate_easyxf (font='Times New Roman',
     if pattern:
         pattern = 'pattern: ' + pattern
         sums.append(pattern)
-        
-      
 #     for k,v in kargs.items():
 #         sums.append(k+': ' + v)
     sums = ';'.join(sums)   
@@ -274,28 +256,19 @@ def get_variable_values(request_args):
         variable_values['to'] = request_args['to']
     return variable_values
         
-
-            
-   
-        
-    return variable_values
 font_map = {1:'Calibri', 2:'Times New Roman'}
 def get_font_font_size(request_args):
     font_font_size_dict = {}
     if 'font_size' in request_args:
-#         font_size =  int(request_args['font_size'])
         font_size = request_args['font_size']
         if font_size > 9 and font_size < 13:
             font_font_size_dict['font_size'] =  font_size
     if 'font' in request_args:
         font = request_args['font']
-#         font = int(font)
         if font in font_map:
             font = font_map.get(font)
             font_font_size_dict['font'] =  font
     return font_font_size_dict
-
-
 
 def common_one_table_report_xl(request_args, basic_setting, gen_table_setting_list, gen_fixups):
     font_font_size_dict = get_font_font_size(request_args)
@@ -350,9 +323,6 @@ def display_from_to(variable_values):
         except ValueError:
             to_ = ''
     return u'Từ ngày %s đến ngày %s'%(from_, to_)
-
-        
-
 
 def easyxf_new(str_style,**kargs):
     style = xlwt.easyxf(str_style)
