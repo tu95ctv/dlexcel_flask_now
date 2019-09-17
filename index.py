@@ -269,10 +269,10 @@ def write_table_rerange(ws, begin_title_irow, begin_icol, table_setting=None):
 
 def get_variable_values(request_args):
     variable_values = {}
-    if 'from' in request_args:
-        variable_values['from'] = request_args['from']
-    if 'to' in request_args:
-        variable_values['to'] = request_args['to']
+    variable_list = ['from' ,'to','school_id']
+    for var in variable_list:
+        if var in request_args:
+            variable_values[var] = request_args[var]
     return variable_values
         
 font_map = {1:'Calibri', 2:'Times New Roman'}
@@ -356,10 +356,15 @@ Basic_setting = {
     'Font_size_default':11
     }
 def ne_nep_gen_table_setting (font, font_size, request_args):
-    ne_nep_query = '''query($from:date!,$to:date!){
+    ne_nep_query = '''query($from:date!,$to:date!,$school_id:uuid!){
   result:edu_classes_aggregate(
     order_by: {
       class_name: asc_nulls_last
+    },
+    where: {
+      school_id:{
+        _eq:$school_id
+      }
     }    
   ){
     aggregate { count }
@@ -483,10 +488,14 @@ Basic_setting = {
 
     }
 def diem_danh_gen_table_setting (font, font_size, request_args):
-    diem_danh_query = '''query($from:date!,$to:date!){
+    diem_danh_query = '''query($from:date!,$to:date!,$school_id:uuid!){
   result:edu_student_attendances(
     where:{   
       _and:[{
+        school_id:{
+          _eq:$school_id
+        }
+      },{
         attend_date:{
           _gte:$from,
           _lte:$to
@@ -621,13 +630,16 @@ Basic_setting = {
 Default_break_sheet = True
 
 def nn_chi_tiet_ca_nhan_gen_table_setting (font, font_size,request_args):
-    ne_nep_query = '''query($from:date!,$to:date!){
+    nn_chi_tiet_ca_nhan_query = '''query($from:date!,$to:date!,$school_id:uuid!){
   result1:thong_ke_truong_v_thongke_bao_cao_vi_pham_ne_nep_chi_tiet_aggregate(
     order_by: {
       class_name: asc_nulls_last
     },
     where: {
       _and: {
+        school_id:{
+          _eq:$school_id
+        },
         attend_date:{
           _gte:$from,
           _lte:$to
@@ -651,6 +663,9 @@ def nn_chi_tiet_ca_nhan_gen_table_setting (font, font_size,request_args):
     },
     where: {
       _and: {
+        school_id:{
+          _eq:$school_id
+        },
         violation_date:{
           _gte:$from,
           _lte:$to
@@ -727,7 +742,7 @@ def nn_chi_tiet_ca_nhan_gen_table_setting (font, font_size,request_args):
         
     ne_nep_table_setting = {
 #             'get_variable_values':get_variable_values_nn_chi_tiet,
-            'query':ne_nep_query,
+            'query':nn_chi_tiet_ca_nhan_query,
             'out_datas_func':nn_chi_tiet_out_datas_func,
             'gen_row_data':None,
             'default_width':11,
@@ -987,20 +1002,19 @@ def dlhaha(func_key):
 
 
 
-
-if __name__ == '__main__':
-    dlxl_map_func = {'ne_nep':{'func':ne_nep_report_xl,'file_name':'ne_nep_tong_hop'},
-                'diem_danh':{'func':diem_danh_report_xl,'file_name':'vi_pham_diem_danh'},
-                'nn_chi_tiet':{'func':nn_chi_tiet_report_xl,'file_name':'nn_chi_tiet'},
-                 }
-    
-    variable_values_dd ={ "from": "2019-09-14", "to": "2019-09-16", 'break_sheet': False  }  
-#     wb = nn_chi_tiet_report_xl(variable_values_dd)
-    key = 'ne_nep'
-    adict = dlxl_map_func[key]
-    wb =adict ['func'](variable_values_dd)
-    wb.save(r'C:\Users\tu\Desktop\New folder\%s_%s.xls'%(adict['file_name'],datetime.now().strftime('%d_%m_%H_%M_%S')))       
-    print('done')
+# if __name__ == '__main__':
+#     dlxl_map_func = {'ne_nep':{'func':ne_nep_report_xl,'file_name':'ne_nep_tong_hop'},
+#                 'diem_danh':{'func':diem_danh_report_xl,'file_name':'vi_pham_diem_danh'},
+#                 'nn_chi_tiet':{'func':nn_chi_tiet_report_xl,'file_name':'nn_chi_tiet'},
+#                  }
+#     
+#     variable_values_dd ={ "from": "2019-09-16", "to": "2019-09-16", 'break_sheet': False,'school_id':'c221ef65-cf92-4565-b095-2f02e82f2cf7'  }  
+# #     wb = nn_chi_tiet_report_xl(variable_values_dd)
+#     key = 'diem_danh'
+#     adict = dlxl_map_func[key]
+#     wb =adict ['func'](variable_values_dd)
+#     wb.save(r'C:\Users\tu\Desktop\New folder\%s_%s.xls'%(adict['file_name'],datetime.now().strftime('%d_%m_%H_%M_%S')))       
+#     print('done')
 
 
 
