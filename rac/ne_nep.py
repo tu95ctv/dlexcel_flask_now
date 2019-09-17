@@ -290,7 +290,8 @@ def common_one_table_report_xl(request_args, basic_setting, gen_table_setting_li
             get_variable_values_func = table_setting.get('get_variable_values', get_variable_values)
             variable_values = get_variable_values_func(request_args)
             data_hasura =  get_hasura_data_with_query_and_variable( variable_values=variable_values, query= table_setting['query'])
-       
+        print ('***data_hasura', data_hasura)
+        raise ValueError('akaka')
         out_datas_func=table_setting.get('out_datas_func')
         if out_datas_func:
             datas =out_datas_func(data_hasura)
@@ -484,10 +485,10 @@ def get_funcxl_and_run_funcxl_from_key(func_key, request_args):
     
     
 
-# if __name__ == '__main__':
-#     variable_values_dd ={ "from": "1999-01-01", "to": "2019-10-10", 'font_size':11 }  
-#     wb = ne_nep_report_xl(variable_values_dd)
-#     wb.save(r'C:\Users\tu\Desktop\New folder\ne_nep_tong_hop.xls')       
-#     print('done')
+if __name__ == '__main__':
+    variable_values_dd ={ "from": "2019-09-16", "to": "2019-09-16", 'font_size':11 }  
+    wb = ne_nep_report_xl(variable_values_dd)
+    wb.save(r'C:\Users\tu\Desktop\New folder\ne_nep_tong_hop.xls')       
+    print('done')
 
 

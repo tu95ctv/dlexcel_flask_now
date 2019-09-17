@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask import Flask, Response
+from operator import itemgetter
 app = Flask(__name__)
 from io import BytesIO
 import mimetypes
@@ -93,7 +94,6 @@ def get_hasura_data(data):
             if count_fail ==5:
                 raise ValueError(u'Lỗi get html')
 
-
 def write_fixups(fixups_setting):
     fixups = fixups_setting['fixups']
     defaut_fixups_style = fixups_setting['default_fixups_style']
@@ -155,6 +155,8 @@ def get_hasura_data_with_query_and_variable(variable_values=None, query=None):
         data['variables'] = variable_values
     rs = get_hasura_data(data)
     return  rs
+Convert_number_to_APB = {0:'A', 1:'B', 2:'C', 3:'D', 4:'E', 5:'F',6:'G',7:'H',8:'I',9:'J', 10:'K'}
+
 # def write_table(table_setting, datas, begin_title_irow,  begin_icol, ws,gen_row_data = None ):
 def write_table_rerange(ws, begin_title_irow, begin_icol, table_setting=None):
     title_height = table_setting.get('title_height')
@@ -164,16 +166,23 @@ def write_table_rerange(ws, begin_title_irow, begin_icol, table_setting=None):
     height = table_setting.get('row_height')
     default_cell_font = table_setting['default_cell_font']
     skip_width = table_setting.get('skip_width')
-    def write_a_row(obj_data, FIELDNAME_FIELDATTR,  ws, irow, begin_icol,cell_font=default_cell_font):
+    all_cell_func = table_setting.get('all_cell_func')
+    def write_a_row(obj_data, FIELDNAME_FIELDATTR,  ws, irow, begin_icol,default_cell_font=default_cell_font, write_a_row_more_data = {}):
         
         ifield = 0 
         for fname, field_attr_dict  in FIELDNAME_FIELDATTR.items():
             icol = begin_icol + ifield
-            style = field_attr_dict.get('style',cell_font)
+            style = field_attr_dict.get('style',default_cell_font)
             val = obj_data.get(fname,None)
             val_func = field_attr_dict.get('val_func',None)
             if val_func:
-                val = val_func(val,obj_data,FIELDNAME_FIELDATTR)
+                try:
+                    val = val_func(val,obj_data,FIELDNAME_FIELDATTR)
+                except TypeError:
+                    val = val_func(val,obj_data,FIELDNAME_FIELDATTR,{'irow':irow, 'icol':icol,'write_a_row_more_data':write_a_row_more_data})
+            
+            if all_cell_func:
+                val = all_cell_func(val)
             field_attr_dict['val'] = val
             is_temp_field = field_attr_dict.get('is_temp_field',False)
             if is_temp_field:
@@ -246,12 +255,13 @@ def write_table_rerange(ws, begin_title_irow, begin_icol, table_setting=None):
     gen_row_data = table_setting.get('gen_row_data')
     title_nrow = write_a_title(FIELDNAME_FIELDATTR, ws, begin_title_irow, begin_icol, default_width, is_merge_title)        
     irow = begin_title_irow +title_nrow   
+    write_a_row_more_data = {'begin_iabrow':irow}
     for  i in datas:
         if gen_row_data:
             obj_data = gen_row_data(i)
         else:
             obj_data = i
-        write_a_row(obj_data, FIELDNAME_FIELDATTR, ws, irow, begin_icol)
+        write_a_row(obj_data, FIELDNAME_FIELDATTR, ws, irow, begin_icol,write_a_row_more_data=write_a_row_more_data)
         irow +=1
     nrow = title_nrow + len(datas)
     return nrow
@@ -287,13 +297,13 @@ def common_one_table_report_xl(request_args, basic_setting, gen_table_setting_li
     table_setting_list =[]
     if not isinstance(gen_table_setting_list, list):
         gen_table_setting_list = [gen_table_setting_list]
-    for gen_table_setting in gen_table_setting_list:
+    for count, gen_table_setting in enumerate(gen_table_setting_list):
         table_setting = gen_table_setting (font, font_size, request_args)
         if table_setting.get('get_hasura_data',True):
             get_variable_values_func = table_setting.get('get_variable_values', get_variable_values)
             variable_values = get_variable_values_func(request_args)
             data_hasura =  get_hasura_data_with_query_and_variable( variable_values=variable_values, query= table_setting['query'])
-       
+        print ('***data_hasura','count', count,  data_hasura)
         out_datas_func=table_setting.get('out_datas_func')
         if out_datas_func:
             datas =out_datas_func(data_hasura)
@@ -383,20 +393,33 @@ def ne_nep_gen_table_setting (font, font_size, request_args):
     
     def ne_nep_out_datas_func (rs):
         datas =rs['data']['result']['nodes']
+        new_datas = []
+        for d in datas:
+            d = ne_nep_gen_row_data(d)
+            if d['tong_diem_tru'] ==None:
+                d['tong_diem_tru'] =0
+                
+            new_datas.append(d)
+        datas = new_datas
+        print ('**datas',datas)
+        add_stt_and_xh(datas, sorted_key='tong_diem_tru')
         return datas
     def ne_nep_gen_row_data(data_item):
         class_name  = data_item['class_name']
         obj_data = data_item['statistics']['aggregate']['sum']
         obj_data['class_name'] = class_name
         return obj_data
+    
 
     @font_decorator_parent_new(font = font, height = font_size, vert = 'center',  horiz = 'center' )
     def generate_easyxf(*args, **kargs):
         return generate_easyxf_import(*args, **kargs)
     ne_nep_FIELDNAME_FIELDATTR = [
-            ('stt',{'val_func': lambda v,d,s:s['stt'].get('val',0)+1,'width':4,'title':u'STT'}),
+#             ('stt',{'val_func': lambda v,d,s:s['stt'].get('val',0)+1,'width':4,'title':u'STT'}),
+            ('stt',{'title':u'STT', 'width':4}),
+            ('xep_hang',{'title':u'XH', 'width':4}),
             ('class_name',{'title':u'Lớp', 'width':5}),
-            ('slg_loi_tap_the',{'merge_title':u'Vi phạm tập thể','title':u'Số lỗi vi phạm'}),
+            ('slg_loi_tap_the',{'merge_title':u'Vi phạm tập thể','title':u'Số lỗi vi phạm', 'val_func':convert_none_to_0}),
             ('diem_tru_tap_the',{'merge_title':u'Vi phạm tập thể','title':u'Số điểm trừ' , 'auto_width':True}),
             ('slg_loi_ca_nhan',{ 'merge_title':u'Vi phạm nề nếp cá nhân', 'title':u'Số lỗi vi phạm'}),
             ('diem_tru_ca_nhan',{'merge_title':u'Vi phạm nề nếp cá nhân', 'title':u'Số điểm trừ', 'auto_width':True}),
@@ -408,7 +431,7 @@ def ne_nep_gen_table_setting (font, font_size, request_args):
     ne_nep_table_setting = {
             'query':ne_nep_query,
             'out_datas_func':ne_nep_out_datas_func,
-            'gen_row_data':ne_nep_gen_row_data,
+            'gen_row_data':None,
             'default_width':11,
             'default_merge_title_font':xlwt.easyxf(generate_easyxf(align_wrap=True, bold=True,vert = 'center',horiz='center',borders='left thin, right thin, top thin, bottom thin')),
             'default_title_font':xlwt.easyxf(generate_easyxf(borders='left thin, right thin, top thin, bottom thin',vert = 'center',horiz = 'center')),
@@ -416,7 +439,8 @@ def ne_nep_gen_table_setting (font, font_size, request_args):
             'is_merge_title':True,
             'FIELDNAME_FIELDATTR':ne_nep_FIELDNAME_FIELDATTR,
             'row_height':20*16,
-            'title_height':20*26
+            'title_height':20*26,
+            'all_cell_func':convert_none_to_0,
             }
     return ne_nep_table_setting
 
@@ -509,9 +533,11 @@ def diem_danh_gen_table_setting (font, font_size, request_args):
 }''' 
     
     def diem_danh_out_datas_func (rs):
-        datas_diem_danh =rs['data']['result']
-        print ('**datas_diem_danh', datas_diem_danh)
-        return datas_diem_danh
+        datas =rs['data']['result']
+#         add_stt_and_xh(datas, sorted_key = 'so_diem_tru') 
+#         print ('**datas_diem_danh', datas_diem_danh)
+
+        return datas
 
 
     @font_decorator_parent_new(font = font, height = font_size )
@@ -520,6 +546,8 @@ def diem_danh_gen_table_setting (font, font_size, request_args):
     
     diem_danh_FIELDNAME_FIELDATTR = [
             ('stt',{'val_func': lambda v,d,s:s['stt'].get('val',0)+1,'width':6, 'title':'STT'}),
+#             ('stt',{'title':u'STT', 'width':4}),
+#             ('xep_hang',{'title':u'XH', 'width':4}),
             ('student_code',{'val_func': lambda v,data_obj, sum_data: data_obj['class_enrollment']['student']['student_code'],  'width':13, 'title':u'Mã học sinh'}),
             ('student_name',{'title':u'Họ và tên', 'width':25,'val_func': lambda v,data_obj,sum_data: data_obj['class_enrollment']['student']['first_name'] +' ' +  data_obj['class_enrollment']['student']['last_name'] }),      
             ('class_name',{'val_func': lambda v,data_obj, sum_data: data_obj['class_enrollment']['class']['class_name'], 'width':6, 'title':'Lớp học'}),
@@ -541,10 +569,14 @@ def diem_danh_gen_table_setting (font, font_size, request_args):
             'is_merge_title':True,
             'FIELDNAME_FIELDATTR':diem_danh_FIELDNAME_FIELDATTR,
             'row_height':20*16,
-            'title_height':20*26
+            'title_height':20*26,
+            'all_cell_func':convert_none_to_0,
             }
     return diem_danh_table_setting
-
+def convert_none_to_0(v,*args):
+        if v == None:
+            v = 0
+        return v
 def diem_danh_gen_fixups(font, font_size,variable_values, diem_danh_table_setting,request_args):
     print ('***variable_values', variable_values)
     @font_decorator_parent_new(font = font, height = font_size, vert = 'center',horiz = 'center')
@@ -646,14 +678,44 @@ def nn_chi_tiet_ca_nhan_gen_table_setting (font, font_size,request_args):
 #             variable_values['to1'] = request_args['to']
 #         return variable_values
 
-    def ne_nep_out_datas_func (rs):
+    def nn_chi_tiet_out_datas_func (rs):
         datas =rs['data']['result1']['nodes']
+        add_stt_and_xh(datas, sorted_key = 'punish_point')    
+        
+#         datas.sort(key =lambda x: -x['punish_point'])
+#         for count, i in enumerate(datas):
+#             i['xep_hang'] = count +1
+#         sorted_datas = sorted(datas, lambda x: x['punish_point'])
         return datas
     @font_decorator_parent_new(font = font, height = font_size, vert = 'center',  horiz = None )
     def generate_easyxf(*args, **kargs):
         return generate_easyxf_import(*args, **kargs)
+    
+    def xep_hang_func(v,d,s,*arg):
+        xh_cu = s['xep_hang'].get('val',1)
+        punish_point_cu = s['punish_point']
+        punish_point = d['punish_point']
+        if punish_point == punish_point_cu:
+            xh = xh_cu
+        else:
+            xh = xh_cu +1
+        return xh
+    def formula_write(v,d,s,more_data):
+        irow = more_data['irow'] + 1
+        icol = more_data['icol']
+        iabcol = Convert_number_to_APB[icol]
+        write_a_row_more_data = more_data['write_a_row_more_data']
+        begin_iabrow = write_a_row_more_data['begin_iabrow'] + 1
+        formula = 'RANK(G%s,$G$%s:$G$108)'%(irow,begin_iabrow)
+#         formula = 'rank(%(iabcol)s%(irow)s,$(iabcol)s$8:$(iabcol)s$108)'%{'iabcol':iabcol, 'irow':irow}
+#         formula = 'rank(%s(iabcol)%s(irow),$s(iabcol)$8:$s(iabcol)$108)'%{'iabcol':iabcol, 'irow':irow}
+
+        return xlwt.Formula(formula)
     ne_nep_FIELDNAME_FIELDATTR = [
-            ('stt',{'val_func': lambda v,d,s:s['stt'].get('val',0)+1,'width':4,'title':u'STT'}),
+#             ('stt',{'val_func': lambda v,d,s:s['stt'].get('val',0)+1,'width':4,'title':u'STT'}),
+
+            ('stt',{'title':u'STT'}),
+            ('xep_hang',{'title':u'XH' , 'width':4}),
             ('violated_at',{'val_func': lambda v,*args: convert_gmt_str_dt_to_vn_str_dt(v[0:10]), 
                             'style':easyxf_new(generate_easyxf(borders='left thin, right thin, top thin, bottom thin',vert = 'center'),num_format_str = 'dd/mm/yyyy'), 
                             'title':'Ngày vi phạm'}),
@@ -666,7 +728,7 @@ def nn_chi_tiet_ca_nhan_gen_table_setting (font, font_size,request_args):
     ne_nep_table_setting = {
 #             'get_variable_values':get_variable_values_nn_chi_tiet,
             'query':ne_nep_query,
-            'out_datas_func':ne_nep_out_datas_func,
+            'out_datas_func':nn_chi_tiet_out_datas_func,
             'gen_row_data':None,
             'default_width':11,
             'default_merge_title_font':xlwt.easyxf(generate_easyxf(align_wrap=True, bold=True,vert = 'center',horiz='center',borders='left thin, right thin, top thin, bottom thin')),
@@ -675,10 +737,37 @@ def nn_chi_tiet_ca_nhan_gen_table_setting (font, font_size,request_args):
             'is_merge_title':False,
             'FIELDNAME_FIELDATTR':ne_nep_FIELDNAME_FIELDATTR,
             'row_height':20*16,
-            'title_height':20*26
+            'title_height':20*26,
+            'all_cell_func':convert_none_to_0,
             }
     return ne_nep_table_setting
 
+def add_xh(datas, sorted_key ='punish_point'):
+    xh_old = 0 
+    dong_xep_hang = 0
+    for count, d in enumerate(datas):
+        punish_point = d[sorted_key]
+        if count ==0 or punish_point != punish_point_old:
+            xh = xh_old  + dong_xep_hang + 1
+            dong_xep_hang = 0 
+        else:
+            xh = xh_old
+            dong_xep_hang+=1
+        xh_old = xh
+        punish_point_old = punish_point
+        d['xep_hang'] = xh
+    return datas
+        
+def add_stt_and_xh(datas, sorted_key = 'punish_point',item_key = None):
+    for count, i in enumerate(datas):
+        i['stt'] = count +1 
+    item_key = item_key or sorted_key
+    datas = sorted(datas, key=itemgetter(item_key))
+#     datas = sorted(datas, key=lambda x: x[item_key] or 0)
+
+    add_xh(datas, sorted_key =sorted_key)     
+    datas = sorted(datas, key=itemgetter('stt'))    
+    
 
 def nn_chi_tiet_tap_the_gen_table_setting (font, font_size, request_args):
     break_sheet = request_args.get('break_sheet', Default_break_sheet)
@@ -731,13 +820,16 @@ def nn_chi_tiet_tap_the_gen_table_setting (font, font_size, request_args):
     
     def ne_nep_tap_the_out_datas_func (rs):
         datas =rs['data']['result2']['nodes']
+        add_stt_and_xh(datas,'punish_point')
         return datas
 
     @font_decorator_parent_new(font = font, height = font_size, vert = 'center',  horiz = None )
     def generate_easyxf(*args, **kargs):
         return generate_easyxf_import(*args, **kargs)
     ne_nep_tap_the_FIELDNAME_FIELDATTR = [
-            ('stt',{'val_func': lambda v,d,s:s['stt'].get('val',0)+1,'width':4,'title':u'STT'}),
+#             ('stt',{'val_func': lambda v,d,s:s['stt'].get('val',0)+1,'width':4,'title':u'STT'}),
+            ('stt',{'title':u'STT', 'width':4}),
+            ('xep_hang',{'title':u'XH', 'width':4}),
             ('violation_date',{'val_func': lambda v,*args: convert_gmt_str_dt_to_vn_str_dt(v[0:10]),
                             'style':easyxf_new(generate_easyxf(borders='left thin, right thin, top thin, bottom thin',vert = 'center'),num_format_str = 'dd/mm/yyyy'), 
                             'title':u'Ngày vi phạm'}),
@@ -760,7 +852,8 @@ def nn_chi_tiet_tap_the_gen_table_setting (font, font_size, request_args):
             'is_merge_title':False,
             'FIELDNAME_FIELDATTR':ne_nep_tap_the_FIELDNAME_FIELDATTR,
             'row_height':20*16,
-            'title_height':20*26
+            'title_height':20*26,
+            'all_cell_func':convert_none_to_0,
             }
     return table_setting
 def nn_chi_tiet_gen_fixups(font, font_size,variable_values, table_setting_list, request_args):
@@ -895,6 +988,19 @@ def dlhaha(func_key):
 
 
 
+if __name__ == '__main__':
+    dlxl_map_func = {'ne_nep':{'func':ne_nep_report_xl,'file_name':'ne_nep_tong_hop'},
+                'diem_danh':{'func':diem_danh_report_xl,'file_name':'vi_pham_diem_danh'},
+                'nn_chi_tiet':{'func':nn_chi_tiet_report_xl,'file_name':'nn_chi_tiet'},
+                 }
+    
+    variable_values_dd ={ "from": "2019-09-14", "to": "2019-09-16", 'break_sheet': False  }  
+#     wb = nn_chi_tiet_report_xl(variable_values_dd)
+    key = 'ne_nep'
+    adict = dlxl_map_func[key]
+    wb =adict ['func'](variable_values_dd)
+    wb.save(r'C:\Users\tu\Desktop\New folder\%s_%s.xls'%(adict['file_name'],datetime.now().strftime('%d_%m_%H_%M_%S')))       
+    print('done')
 
 
 

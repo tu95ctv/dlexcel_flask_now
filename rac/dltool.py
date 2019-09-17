@@ -284,7 +284,8 @@ def common_one_table_report_xl(request_args, basic_setting, gen_table_setting_li
             get_variable_values_func = table_setting.get('get_variable_values', get_variable_values)
             variable_values = get_variable_values_func(request_args)
             data_hasura =  get_hasura_data_with_query_and_variable( variable_values=variable_values, query= table_setting['query'])
-       
+        print ('***data_hasura', data_hasura)
+        raise ValueError('akaka')
         out_datas_func=table_setting.get('out_datas_func')
         if out_datas_func:
             datas =out_datas_func(data_hasura)
